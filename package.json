@@ -1,0 +1,27 @@
+{
+    "name": "treasure-hunt-advanced",
+    "license": "MIT",
+    "author": {
+      "name": "Julien Blanchet",
+      "url": "https://www.github.com/j55blanchet"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/j55blanchet/treasure-hunt-advanced.git"
+    },
+    "version": "0.0.1",
+    "dependencies": {
+      "p5": "^0.6.1"
+    },
+    "devDependencies": {
+      "@types/node": "^10.3.3",
+      "fuse-box": "^3.2.2",
+      "typescript": "^2.9.2",
+      "uglify-js": "^3.4.0"
+    },
+    "scripts": {
+      "compile": "tsc",
+      "sketch": "node fuse.js",
+      "dist-os": "node fuse.js dist-open-processing"
+    }
+  }

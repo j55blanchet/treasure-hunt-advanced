@@ -115,10 +115,10 @@ export class Dragon {
     }
 
     public static loadSprites(p: p5) {
-        const FRAME_1 = require("./frame-1.png").default
-        const FRAME_2 = require('./frame-2.png').default
-        const FRAME_3 = require('./frame-3.png').default
-        const FRAME_4 = require('./frame-4.png').default
+        const FRAME_1 = require("./assets/frame-1.png").default
+        const FRAME_2 = require('./assets/frame-2.png').default
+        const FRAME_3 = require('./assets/frame-3.png').default
+        const FRAME_4 = require('./assets/frame-4.png').default
 
         Dragon.sprites = [
             p.loadImage(FRAME_1),
