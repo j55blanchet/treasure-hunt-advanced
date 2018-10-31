@@ -11,7 +11,7 @@ context(class {
   getConfig() {
     return FuseBox.init({
       homeDir: 'src',
-      output: 'dist/$name.js',
+      output: 'docs/$name.js',
       target : 'browser@es5',
       sourceMaps: !this.isProduction,
       globals: !this.isProduction ? { p5: 'p5' } : {},
