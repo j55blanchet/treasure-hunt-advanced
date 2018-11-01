@@ -11,7 +11,7 @@ context(class {
   getConfig() {
     return FuseBox.init({
       homeDir: 'src',
-      output: 'docs/$name.js',
+      output: 'dist/$name.js',
       target : 'browser@es5',
       sourceMaps: !this.isProduction,
       globals: !this.isProduction ? { p5: 'p5' } : {},
@@ -43,7 +43,7 @@ context(class {
   }
 
   async cleanDist() {
-    await src("./docs").clean("docs/").exec()
+    await src("./dist").clean("dist/").exec()
   }
 })
 

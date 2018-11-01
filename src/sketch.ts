@@ -40,15 +40,26 @@ var sketch = function (p: p5) {
   }
 
   p.setup = function () {
-    p.createCanvas(p.windowWidth, p.windowHeight)
+    let width = 600
+    let height = 600
+    p.createCanvas(width, height)
     p.frameRate(60);
 
-    dragon = new Dragon(p.windowWidth / 2, p.windowHeight / 2, 100, 72, Direction.Left);
+    dragon = new Dragon(70, 56, 100 * .75, 72 * .75, Direction.Right);
     obstacles = [
-      new RectObstacle(0, 0, p.windowWidth, 20, p.color(20)),
-      new RectObstacle(0, 0, 20, p.windowHeight, p.color(20)),
-      new RectObstacle(p.windowWidth - 20, 0, 20, p.windowHeight, p.color(20)),
-      new RectObstacle(0, p.windowHeight - 20, p.windowWidth, 20, p.color(20))
+      // Walls
+      new RectObstacle(0, 0, width, 20, p.color(20)),
+      new RectObstacle(0, 0, 20, height, p.color(20)),
+      new RectObstacle(width - 20, 0, 20, height, p.color(20)),
+      new RectObstacle(0, height - 20, width, 20, p.color(20)),
+
+      // Other
+      new RectObstacle(20 + 100 + 20, 0, 20, 200, p.color(0, 255, 0)),
+      new RectObstacle(0, 300, 275, 20, p.color(100, 175, 75)),
+      new RectObstacle(275, 110, 20, 210, p.color(200, 100, 60)),
+      new RectObstacle(275, 110, 200, 20, p.color(0, 255, 255), p.color(255, 0, 0)),
+      new RectObstacle(410, 225, 170, 20, p.color(255)),
+      new RectObstacle(410, 320, 170, 170, p.color(255, 100), p.color(200, 0, 200))
     ]
   }
 
