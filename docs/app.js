@@ -7,12 +7,14 @@ ___scope___.file("sketch.js", function(exports, require, module, __filename, __d
 Object.defineProperty(exports, "__esModule", { value: true });
 require("p5");
 var dragon_1 = require("./dragon");
+var rectObstacle_1 = require("./baseClasses/rectObstacle");
 require('p5/lib/addons/p5.sound');
 var sketch = function (p) {
     var anyP = p;
     var USEDKEYCODES = [anyP.LEFT_ARROW, anyP.RIGHT_ARROW, anyP.UP_ARROW, anyP.DOWN_ARROW];
     var keysDown = {};
     var dragon;
+    var obstacles;
     function getKeyDirection() {
         var hasRight = keysDown[anyP.RIGHT_ARROW] && !keysDown[anyP.LEFT_ARROW];
         var hasLeft = keysDown[anyP.LEFT_ARROW] && !keysDown[anyP.RIGHT_ARROW];
@@ -50,13 +52,35 @@ var sketch = function (p) {
     p.setup = function () {
         p.createCanvas(p.windowWidth, p.windowHeight);
         p.frameRate(60);
-        dragon = new dragon_1.Dragon(p.windowWidth / 2, p.windowHeight / 2, 100, dragon_1.Direction.Up);
+        dragon = new dragon_1.Dragon(p.windowWidth / 2, p.windowHeight / 2, 100, 72, dragon_1.Direction.Left);
+        obstacles = [
+            new rectObstacle_1.RectObstacle(0, 0, p.windowWidth, 20, p.color(20)),
+            new rectObstacle_1.RectObstacle(0, 0, 20, p.windowHeight, p.color(20)),
+            new rectObstacle_1.RectObstacle(p.windowWidth - 20, 0, 20, p.windowHeight, p.color(20)),
+            new rectObstacle_1.RectObstacle(0, p.windowHeight - 20, p.windowWidth, 20, p.color(20))
+        ];
     };
     p.draw = function () {
         p.background(100);
+        obstacles.forEach(function (obs) {
+            obs.draw(p);
+        });
         dragon.draw(p);
         if (p.keyIsPressed) {
-            dragon.move(getKeyDirection(), 10);
+            var direction = getKeyDirection();
+            dragon.tryMove(direction, 10);
+            var isValidMove_1 = true;
+            obstacles.forEach(function (obs) {
+                if (obs.overlapsWith(dragon)) {
+                    isValidMove_1 = false;
+                }
+            });
+            if (isValidMove_1) {
+                dragon.commitMove();
+            }
+            else {
+                dragon.abortMove(direction, 10);
+            }
         }
     };
     p.keyPressed = function () {
@@ -74,8 +98,19 @@ new p5(sketch);
 ___scope___.file("dragon.js", function(exports, require, module, __filename, __dirname){
 
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 require("p5");
+var rectObject_1 = require("./baseClasses/rectObject");
 var Direction;
 (function (Direction) {
     Direction[Direction["Up"] = 1] = "Up";
@@ -88,27 +123,107 @@ var Direction;
     Direction[Direction["DownRight"] = 8] = "DownRight";
     Direction[Direction["None"] = 9] = "None";
 })(Direction = exports.Direction || (exports.Direction = {}));
-var Dragon = (function () {
-    function Dragon(x, y, diameter, prevDirection) {
-        this.x = x;
-        this.y = y;
-        this.diameter = diameter;
-        this.prevDirection = prevDirection;
-        this.currentSpriteIndex = 0;
-        this.lastFlap = new Date().getTime();
+function oppositeDirection(dir) {
+    switch (dir) {
+        case Direction.Down: return Direction.Up;
+        case Direction.DownLeft: return Direction.UpRight;
+        case Direction.DownRight: return Direction.UpLeft;
+        case Direction.Left: return Direction.Right;
+        case Direction.Right: return Direction.Left;
+        case Direction.Up: return Direction.Down;
+        case Direction.UpLeft: return Direction.DownRight;
+        case Direction.UpRight: return Direction.DownLeft;
+        case Direction.None: return Direction.None;
     }
+}
+var Dragon = (function (_super) {
+    __extends(Dragon, _super);
+    function Dragon(x, y, width, height, bearing) {
+        var _this = _super.call(this, x, y, width, height) || this;
+        _this.bearing = bearing;
+        _this.currentSpriteIndex = 0;
+        _this.lastFlap = new Date().getTime();
+        _this.previousBearing = Direction.None;
+        _this.previousBearing = bearing;
+        return _this;
+    }
+    Object.defineProperty(Dragon.prototype, "minX", {
+        get: function () {
+            switch (this.bearing) {
+                case Direction.Down, Direction.Up: return this.ctrX - this.height / 2;
+                default: return this.ctrX - this.width / 2;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Dragon.prototype, "maxX", {
+        get: function () {
+            switch (this.bearing) {
+                case Direction.Down, Direction.Up: return this.ctrX + this.height / 2;
+                default: return this.ctrX + this.width / 2;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Dragon.prototype, "minY", {
+        get: function () {
+            switch (this.bearing) {
+                case Direction.Down, Direction.Up: return this.ctrY - this.width / 2;
+                default: return this.ctrY - this.height / 2;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Dragon.prototype, "maxY", {
+        get: function () {
+            switch (this.bearing) {
+                case Direction.Down, Direction.Up: return this.ctrY + this.width / 2;
+                default: return this.ctrY + this.height / 2;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Dragon.prototype, "hitboxWidth", {
+        get: function () {
+            switch (this.bearing) {
+                case Direction.Down, Direction.Up: return this.height;
+                default: return this.width;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Dragon.prototype, "hitboxHeight", {
+        get: function () {
+            switch (this.bearing) {
+                case Direction.Down, Direction.Up: return this.width;
+                default: return this.height;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
     Dragon.prototype.draw = function (p) {
         p.push();
-        p.translate(this.x, this.y);
+        p.fill(255, 0, 0, 100);
+        p.noStroke();
+        p.rectMode(p.CORNER);
+        p.rect(this.minX, this.minY, this.hitboxWidth, this.hitboxHeight);
+        p.translate(this.ctrX, this.ctrY);
         p.angleMode(p.DEGREES);
-        switch (this.prevDirection) {
+        switch (this.bearing) {
             case Direction.Right:
                 break;
             case Direction.DownRight:
                 p.rotate(45);
                 break;
             case Direction.Down:
-                p.rotate(90);
+                p.rotate(-90);
+                p.scale(-1, 1);
                 break;
             case Direction.DownLeft:
                 p.scale(-1.0, 1);
@@ -136,45 +251,54 @@ var Dragon = (function () {
             this.currentSpriteIndex %= Dragon.sprites.length;
         }
         var image = Dragon.sprites[this.currentSpriteIndex];
-        var scaleFactor = p.min(this.diameter / image.width, this.diameter / image.height);
-        p.image(image, 0, 0, image.width * scaleFactor, image.height * scaleFactor);
+        p.image(image, 0, 0, this.width, this.height);
         p.pop();
     };
-    Dragon.prototype.move = function (direction, pixels) {
+    Dragon.prototype.adjustPostion = function (direction, pixels) {
         var diagComponentPixels = pixels / Math.SQRT2;
         switch (direction) {
             case Direction.Right:
-                this.x += pixels;
+                this.ctrX += pixels;
                 break;
             case Direction.DownRight:
-                this.x += diagComponentPixels;
-                this.y += diagComponentPixels;
+                this.ctrX += diagComponentPixels;
+                this.ctrY += diagComponentPixels;
                 break;
             case Direction.Down:
-                this.y += pixels;
+                this.ctrY += pixels;
                 break;
             case Direction.DownLeft:
-                this.y += diagComponentPixels;
-                this.x -= diagComponentPixels;
+                this.ctrY += diagComponentPixels;
+                this.ctrX -= diagComponentPixels;
                 break;
             case Direction.Left:
-                this.x -= pixels;
+                this.ctrX -= pixels;
                 break;
             case Direction.UpLeft:
-                this.x -= diagComponentPixels;
-                this.y -= diagComponentPixels;
+                this.ctrX -= diagComponentPixels;
+                this.ctrY -= diagComponentPixels;
                 break;
             case Direction.Up:
-                this.y -= pixels;
+                this.ctrY -= pixels;
                 break;
             case Direction.UpRight:
-                this.x += diagComponentPixels;
-                this.y -= diagComponentPixels;
+                this.ctrX += diagComponentPixels;
+                this.ctrY -= diagComponentPixels;
                 break;
             default:
                 return;
         }
-        this.prevDirection = direction;
+    };
+    Dragon.prototype.tryMove = function (direction, pixels) {
+        this.previousBearing = this.bearing;
+        this.bearing = direction;
+        this.adjustPostion(direction, pixels);
+    };
+    Dragon.prototype.abortMove = function (direction, pixels) {
+        this.adjustPostion(oppositeDirection(direction), pixels);
+        this.bearing = this.previousBearing;
+    };
+    Dragon.prototype.commitMove = function () {
     };
     Dragon.loadSprites = function (p) {
         var FRAME_1 = require("./assets/frame-1.png").default;
@@ -188,11 +312,79 @@ var Dragon = (function () {
             p.loadImage(FRAME_4)
         ];
     };
-    Dragon.FLAPS_PER_SECOND = 2.5;
+    Dragon.FLAPS_PER_SECOND = 1;
     return Dragon;
-}());
+}(rectObject_1.CtrRectObject));
 exports.Dragon = Dragon;
 //# sourceMappingURL=app.js.map
+});
+___scope___.file("baseClasses/rectObject.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var CtrRectObject = (function () {
+    function CtrRectObject(ctrX, ctrY, width, height) {
+        this.ctrX = ctrX;
+        this.ctrY = ctrY;
+        this.width = width;
+        this.height = height;
+    }
+    Object.defineProperty(CtrRectObject.prototype, "minX", {
+        get: function () {
+            return this.ctrX - this.width / 2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CtrRectObject.prototype, "minY", {
+        get: function () {
+            return this.ctrY - this.height / 2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CtrRectObject.prototype, "maxX", {
+        get: function () {
+            return this.ctrX + this.width / 2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CtrRectObject.prototype, "maxY", {
+        get: function () {
+            return this.ctrY + this.height / 2;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    CtrRectObject.prototype.overlapsWith = function (other) {
+        return !(this.minX > other.maxX ||
+            this.maxX < other.minX ||
+            this.minY > other.maxY ||
+            this.maxY < other.minY);
+    };
+    return CtrRectObject;
+}());
+exports.CtrRectObject = CtrRectObject;
+var TLRectObject = (function (_super) {
+    __extends(TLRectObject, _super);
+    function TLRectObject(tlX, tlY, width, height) {
+        return _super.call(this, tlX + width / 2, tlY + height / 2, width, height) || this;
+    }
+    return TLRectObject;
+}(CtrRectObject));
+exports.TLRectObject = TLRectObject;
+//# sourceMappingURL=rectObject.js.map
 });
 ___scope___.file("assets/frame-1.png", function(exports, require, module, __filename, __dirname){
 
@@ -209,6 +401,53 @@ module.exports.default = "/assets/46044a3d-frame-3.png";
 ___scope___.file("assets/frame-4.png", function(exports, require, module, __filename, __dirname){
 
 module.exports.default = "/assets/47f56c5a-frame-4.png";
+});
+___scope___.file("baseClasses/rectObstacle.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var rectObject_1 = require("./rectObject");
+require("p5");
+var RectObstacle = (function (_super) {
+    __extends(RectObstacle, _super);
+    function RectObstacle(tlX, tlY, width, height, fillColor, strokeColor) {
+        var _this = _super.call(this, tlX, tlY, width, height) || this;
+        _this.fillColor = fillColor;
+        _this.strokeColor = strokeColor;
+        return _this;
+    }
+    RectObstacle.prototype.draw = function (p) {
+        p.push();
+        if (this.strokeColor) {
+            p.stroke(this.strokeColor);
+        }
+        else {
+            p.noStroke();
+        }
+        if (this.fillColor) {
+            p.fill(this.fillColor);
+        }
+        else {
+            p.noFill();
+        }
+        p.rectMode(p.CENTER);
+        p.rect(this.ctrX, this.ctrY, this.width, this.height);
+        p.pop();
+    };
+    return RectObstacle;
+}(rectObject_1.TLRectObject));
+exports.RectObstacle = RectObstacle;
+//# sourceMappingURL=rectObstacle.js.map
 });
 return ___scope___.entry = "sketch.js";
 });

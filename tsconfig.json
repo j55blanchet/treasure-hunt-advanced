@@ -8,7 +8,8 @@
         "allowJs": true,
         "sourceMap": true,
         "outDir": "dist",
-        "target": "es5"
+        "target": "es5",
+        "sourceRoot": "src"
     },
     "include": [
         "src/**/*"
