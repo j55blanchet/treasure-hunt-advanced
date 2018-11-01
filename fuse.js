@@ -43,7 +43,7 @@ context(class {
   }
 
   async cleanDist() {
-    await src("./dist").clean("dist/").exec()
+    await src("./docs").clean("docs/").exec()
   }
 })
 
